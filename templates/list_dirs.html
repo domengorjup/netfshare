@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Mape za prenos</h2>
+    <ul>
+    {% for dir in read_only_dirs %}
+        <li><a href="{{ url_for('download', path=dir) }}">{{ dir }}</a></li>
+    {% endfor %}
+    </ul>
+
+    <br><hr><br>
+
+    <h2>Mape za nalaganje</h2>
+    <ul>
+    {% for dir in upload_only_dirs %}
+        <li><a href="{{ url_for('upload_dir', path=dir) }}">{{ dir }}</a></li>
+    {% endfor %}
+    </ul>
+
+    <br><hr><br>
+
+    {% if admin %}
+
+    <form action="{{ url_for('list_dirs') }}" method="post">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    <ul>
+        {% for dir in manage_dirs %}
+        <li>
+            {{ dir.path }} mode:
+            <select name="{{ dir.id }}" id="{{ dir.id }}">
+                {% for value, label in share_modes.items() %}
+                <option value="{{ value }}" {% if dir.mode==value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+
+            </select>
+        </li>
+        {% endfor %}
+        <input type="submit" value="Submit">
+    </ul>
+    </form>
+
+    {% endif %}
+{% endblock %}
