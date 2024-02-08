@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if admin %}
+
+<p><a href="{{ url_for('copy_config') }}">Copy config file to `.netfshare/config.json`</a></p>
+
+<h3>Manage shared directories</h3>
+<form action="{{ url_for('admin_view') }}" method="post">
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+<ul>
+    {% for dir in manage_dirs %}
+    <li>
+        {{ dir.path }} mode:
+        <select name="{{ dir.id }}" id="{{ dir.id }}">
+        {% for value, label in share_modes.items() %}
+            {% set int_val = value|int %}
+            <option value="{{ int_val }}" {% if dir.mode==int_val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+        </select>
+    </li>
+    {% endfor %}
+    <input type="submit" value="Submit">
+</ul>
+</form>
+<p>(The following directory names are excluded from sharing. Check config file: {{ exclude_dirnames }})</p>
+
+<p><a href="{{ url_for('list_dirs') }}?action=refresh">Back to index</a></p>
+
+{% endif %}
+{% endblock %}

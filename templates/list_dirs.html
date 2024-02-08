@@ -20,24 +20,7 @@
     <br><hr><br>
 
     {% if admin %}
-
-    <form action="{{ url_for('list_dirs') }}" method="post">
-    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <ul>
-        {% for dir in manage_dirs %}
-        <li>
-            {{ dir.path }} mode:
-            <select name="{{ dir.id }}" id="{{ dir.id }}">
-                {% for value, label in share_modes.items() %}
-                <option value="{{ value }}" {% if dir.mode==value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-
-            </select>
-        </li>
-        {% endfor %}
-        <input type="submit" value="Submit">
-    </ul>
-    </form>
-
+    <p><a href="{{ url_for('admin_view') }}">Admin</a></p>
     {% endif %}
+
 {% endblock %}

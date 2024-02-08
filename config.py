@@ -1,6 +1,6 @@
 # App settings
 DEBUG = True
-SECRET_KEY = 'secretdomenkey'
+SECRET_KEY = 'secretkkkey'
 WTF_CSRF_ENABLED = True
 
 # Database
@@ -9,8 +9,13 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # Served file refresh time
 REFRESH_TIME = 120
 
-# Logging depths
-LOG_DEPTH = {
-    True: 10,
-    False: 20
+SHARE_MODES = {
+    0: 'Not shared',
+    1: 'Read only',
+    2: 'Upload_only'
 }
+
+EXCLUDE_DIRNAMES = ['.git', '.netfshare', '__pycache__', 'venv']
+
+# Maximum number of files to upload at once
+MAX_FILES = 10

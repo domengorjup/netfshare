@@ -4,6 +4,17 @@
     <title>File share</title>
 </head>
 <body>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+
     <h1>File share</h1>
     {% block content %}{% endblock %}
 </body>
