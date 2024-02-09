@@ -111,7 +111,6 @@ def check_admin(request):
 def id_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print('id_required decorator...')
         client = Client.query.filter(Client.address==request.remote_addr).first()
         print('client: ', client)
         admin = check_admin(request)
@@ -125,7 +124,6 @@ def id_required(f):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print('admin_required decorator...')
         admin = check_admin(request)
         if not admin:
             message = 'Admin access required. Redirecting to index...'
@@ -141,13 +139,11 @@ def inject_client():
     context = {}
     context['admin'] = check_admin(request)
     client = Client.query.filter(Client.address==request.remote_addr).first()
-    client.active = True
-    client.last_seen = datetime.datetime.now()
-    db.session.commit()
-    if client:
-        context['client'] = client
-    else:
-        context['client'] = None
+    context['client'] = client
+    if client is not None:
+        client.active = True
+        client.last_seen = datetime.datetime.now()
+        db.session.commit()
     return context
 
 # Views
@@ -182,14 +178,6 @@ def list_dirs():
     #not_shared_dirs = available_dirs(0)
     read_only_dirs = available_dirs(1)
     upload_only_dirs = available_dirs(2)
-
-    # Admin check and management forms
-    admin = False
-    if check_admin(request):
-        admin = True
-        print('you are admin')
-    else:
-        print('not admin')
     
     return render_template(
         'list_dirs.html',
@@ -207,6 +195,7 @@ def download(path):
     """
     if not os.path.isdir(os.path.join(SHARED_DIRECTORY, path)):
         print(path, ' not a directory')
+        flash(f'{path} is not a shared directory.', 'error')
         return redirect(url_for('list_dirs'))
     else:
         zip_file = os.path.join(SHARED_DIRECTORY, '.netfshare', path + '.zip')
@@ -269,7 +258,6 @@ def upload_dir(path):
                 filename = secure_filename(file.filename)
                 # Handle nested subdirectories
                 file_path = os.path.join(save_dir, filename)
-                print(file_path)
                 os.makedirs(save_dir, exist_ok=True)
                 file.save(file_path)
 
@@ -309,26 +297,19 @@ def copy_config():
 def admin_view():
     # Admin check and management forms
     context = {}
-    if check_admin(request):
-        print('you are admin')
-        context['admin'] = True
+    # Populate shared dir management forms
+    manage_dirs = [dir for dir in Directory.query.all() if dir.path in os.listdir(SHARED_DIRECTORY)]
+    context['manage_dirs'] = manage_dirs
 
-        # Populate shared dir management forms
-        manage_dirs = [dir for dir in Directory.query.all() if dir.path in os.listdir(SHARED_DIRECTORY)]
-        context['manage_dirs'] = manage_dirs
-
-        # Validate and update share mode
-        if request.method == 'POST':
-            for id, value in request.form.items():
-                if id in [str(d.id) for d in Directory.query.all()]:
-                    if value in [str(k) for k in app.config["SHARE_MODES"].keys()]:
-                        dir = Directory.query.filter(Directory.id == int(id)).first()
-                        dir.mode = int(value)
-                        db.session.commit()
-            return redirect(url_for('admin_view'))
-            
-    else:
-        return redirect(url_for('list_dirs'))
+    # Validate and update share mode
+    if request.method == 'POST':
+        for id, value in request.form.items():
+            if id in [str(d.id) for d in Directory.query.all()]:
+                if value in [str(k) for k in app.config["SHARE_MODES"].keys()]:
+                    dir = Directory.query.filter(Directory.id == int(id)).first()
+                    dir.mode = int(value)
+                    db.session.commit()
+        return redirect(url_for('admin_view'))
     
     return render_template(
         'admin.html',
@@ -348,9 +329,6 @@ def manage_session():
         clients = Client.query.all()
         downloads = Download.query.all()
         uploads = Upload.query.all()
-        
-        for d in downloads:
-            print(d.client.address)
 
         # ping client to update last_seen
         for client in clients:
