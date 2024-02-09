@@ -195,7 +195,7 @@ def download(path):
     """
     if not os.path.isdir(os.path.join(SHARED_DIRECTORY, path)):
         print(path, ' not a directory')
-        flash(f'{path} is not a shared directory.', 'error')
+        flash(f'{path} is not a shared directory.', 'warning')
         return redirect(url_for('list_dirs'))
     else:
         zip_file = os.path.join(SHARED_DIRECTORY, '.netfshare', path + '.zip')
@@ -244,11 +244,11 @@ def upload_dir(path):
         uploaded_files = request.files.getlist('file')
 
         if len(uploaded_files) > app.config['MAX_FILES']:
-            flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'error')
+            flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'warning')
             return redirect(url_for('upload_dir', path=path))
         
         if os.path.exists(target_path):
-            flash(f'Datotke z istim imenom že obstajajo.', 'error')
+            flash(f'Datotke z istim imenom že obstajajo.', 'warning')
             return redirect(url_for('upload_dir', path=path))
         
         for file in uploaded_files:
@@ -282,7 +282,7 @@ def copy_config():
     if check_admin(request):
         config_copy_keys = [
             'DEBUG', 'SECRET_KEY', 'WTF_CSRF_ENABLED', 'SQLALCHEMY_DATABASE_URI', 
-            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES'
+            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES', 'MAX_FILES'
         ]
         config_items = [(k, app.config[k]) for k in config_copy_keys if k in app.config.keys()]
         with open(local_config, 'w') as f:

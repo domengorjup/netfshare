@@ -3,33 +3,32 @@
 {% block content %}
 {% if admin %}
 
-<p><a href="{{ url_for('reset_session') }}">Reset current session`</a></p>
-<p>Warning: clears all current client, download and upload records.<p>
+<div class="columns">
+<div class="column">
+    <h3 class="subtitle">Clients list:</h3>
+    <table class="table is-hoverable">
+    <th>
+        <td>Client name</td>
+        <td>Address</td>
+        <td>Last seen</td>
+        <td>Status</td>
+    </th>
 
-<h3>Clients list:</h3>
+    {% for client in clients %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ client.selected_name }}</td>
+            <td>{{ client.address }}</td>
+            <td>{{ client.last_seen }}</td> 
+            <td>{{ client.active }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+</div>
 
-
-<table>
-<th>
-    <td>Client name</td>
-    <td>Address</td>
-    <td>Last seen</td>
-    <td>Status</td>
-</th>
-
-{% for client in clients %}
-    <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ client.selected_name }}</td>
-        <td>{{ client.address }}</td>
-        <td>{{ client.last_seen }}</td> 
-        <td>{{ client.active }}</td>
-    </tr>
-{% endfor %}
-</table>
-
-<h3>Downloads list:</h3>
-<table>
+<div class="column">
+    <h3 class="subtitle">Downloads list:</h3>
+    <table class="table is-hoverable">
     <th>
         <td>Client name</td>
         <td>Directory</td>
@@ -44,10 +43,13 @@
             <td>{{ dl.download_time }}</td>
         </tr>
     {% endfor %}
-</table>
+    </table>
+</div>
 
-<h3>Uploads list:</h3>
-<table>
+<div class="column">
+
+<h3 class="subtitle">Uploads list:</h3>
+    <table class="table is-hoverable">
     <th>
         <td>Client name</td>
         <td>Directory</td>
@@ -64,7 +66,14 @@
             <td>{{ ul.files_count }}</td>
         </tr>
     {% endfor %}
-</table>
+    </table>
+</div>
+</div>
+
+
+<button class="button is-warning is-light" onclick="{{ url_for('reset_session') }}" title="Warning: clears all current client, download and upload records.">
+    Reset current session
+</button>
 
 {% endif %}
 {% endblock %}
