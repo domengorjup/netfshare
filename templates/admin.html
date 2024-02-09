@@ -5,6 +5,8 @@
 
 <p><a href="{{ url_for('copy_config') }}">Copy config file to `.netfshare/config.json`</a></p>
 
+<p><a href="{{ url_for('manage_session') }}">Manage current session (clents, downloads, uploads).</a></p>
+
 <h3>Manage shared directories</h3>
 <form action="{{ url_for('admin_view') }}" method="post">
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">

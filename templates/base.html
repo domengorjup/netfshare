@@ -15,7 +15,12 @@
     {% endif %}
     {% endwith %}
 
+    Client: {{ client.selected_name }} ({{ client.address }}), {% if client.active %}ACTIVE{% else %}NOT ACTIVE{% endif %}
+
     <h1>File share</h1>
     {% block content %}{% endblock %}
+    
+<p><a href="{{ url_for('list_dirs') }}?action=refresh">Back to index</a></p>
+
 </body>
 </html>

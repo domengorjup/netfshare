@@ -2,16 +2,25 @@ import os
 import time
 import zipfile
 import json
+import datetime
+from functools import wraps
+from pythonping import ping
 
-from flask import Flask, request, redirect, url_for, send_file, flash, render_template
+from flask import (Flask, Blueprint, request, redirect, url_for, 
+                   send_file, flash, render_template, )
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 
 SHARED_DIRECTORY = os.getcwd()
 app = Flask(__name__)
 
+# Register this module as view Blueprint
+netfshare = Blueprint('netfshare', __name__)
+
+ 
 # Config app
 local_config = os.path.join(SHARED_DIRECTORY, '.netfshare', 'config.json')
+print(f'Starting netfshare in {SHARED_DIRECTORY}...')
 try:
     print('config from local file: ', local_config)
     app.config.from_file(local_config, load=json.load, text=False)
@@ -27,12 +36,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 
 db = SQLAlchemy(app)
 
-
-# Directory DB model
+# DB models
 class Directory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mode = db.Column(db.Integer, default=0)
     path = db.Column(db.String(64), nullable=True)
+    # # Backref relationships to access directory from download and upload:
+    downloads = db.relationship('Download', backref='directory')
+    uploads = db.relationship('Upload', backref='directory')
 
     def __init__(self, path):
         self.path = path
@@ -40,6 +51,35 @@ class Directory(db.Model):
 
     def __repr__(self):
         return f'Directory: {self.path} (share mode {self.mode})'
+    
+class Client(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    address = db.Column(db.String(64), nullable=True)
+    last_seen = db.Column(db.DateTime, default=datetime.datetime.now)
+    selected_name = db.Column(db.String(64), nullable=True)
+    active = db.Column(db.Boolean, default=False)
+    # Backref relationships to access client from download and upload:
+    downloads = db.relationship('Download', backref='client')
+    uploads = db.relationship('Upload', backref='client')
+
+    def __init__(self, address):
+        self.address = address
+
+    def __repr__(self):
+        return f'Client: {self.address} (name: {self.selected_name}), active: {self.active}, (last seen {self.last_seen})'
+    
+class Download(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
+    directory_id = db.Column(db.Integer, db.ForeignKey('directory.id'))
+    download_time = db.Column(db.DateTime, default=datetime.datetime.now)
+
+class Upload(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
+    directory_id = db.Column(db.Integer, db.ForeignKey('directory.id'))
+    upload_time = db.Column(db.DateTime, default=datetime.datetime.now)
+    files_count = db.Column(db.Integer)
 
 # Scan the shared directory and add subdirectories to the DB
 with app.app_context():
@@ -51,7 +91,6 @@ with app.app_context():
                 db.session.add(Directory(directory))
     db.session.commit()
 
-
 # Helper functions
 def available_dirs(mode):
     """
@@ -62,15 +101,79 @@ def available_dirs(mode):
     matching_mode_paths = [dir.path for dir in Directory.query.filter(Directory.mode==mode).all()]
     return [_ for _ in all_dirs if _ in matching_mode_paths]
 
-
 def check_admin(request):
     is_admin = False
     if (request.remote_addr) in str(request.host):
         is_admin = True
     return is_admin
 
+# User identification decorator
+def id_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        print('id_required decorator...')
+        client = Client.query.filter(Client.address==request.remote_addr).first()
+        print('client: ', client)
+        admin = check_admin(request)
+        if client is None:
+            if not admin:
+                flash('No user ID set.', 'error')
+                return redirect(url_for('identify'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        print('admin_required decorator...')
+        admin = check_admin(request)
+        if not admin:
+            message = 'Admin access required. Redirecting to index...'
+            flash(message, 'error')
+            print(message)
+            return redirect('/')
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Context processor to inject client id and admin status into templates
+@app.context_processor
+def inject_client():
+    context = {}
+    context['admin'] = check_admin(request)
+    client = Client.query.filter(Client.address==request.remote_addr).first()
+    client.active = True
+    client.last_seen = datetime.datetime.now()
+    db.session.commit()
+    if client:
+        context['client'] = client
+    else:
+        context['client'] = None
+    return context
 
 # Views
+@app.route("/id", methods=["GET", "POST"])
+def identify():
+    """
+    View to identify the user on first access.
+    """
+    # Client database query
+    client = Client.query.filter(Client.address==request.remote_addr).first()
+    if client is not None:
+        return redirect('/')
+    
+    if request.method == 'POST':
+        id = request.form.get('id')
+        if id:
+            client = Client(request.remote_addr)
+            client.selected_name = id
+            db.session.add(client)
+            db.session.commit()
+            return redirect('/')
+        else:
+            flash('Prosim vpišite vpisno številko.', 'error')
+            return redirect('/')
+    return render_template('identify.html')
+
 @app.route("/", methods=["GET", "POST"])
 def list_dirs():
     """
@@ -90,13 +193,13 @@ def list_dirs():
     
     return render_template(
         'list_dirs.html',
-        admin=admin,
         read_only_dirs=read_only_dirs, 
         upload_only_dirs=upload_only_dirs
         )
 
 
 @app.route("/download/<path>")
+@id_required
 def download(path):
     """
     Download read_only directory.
@@ -117,17 +220,27 @@ def download(path):
                 refresh_file = True
 
         if not os.path.isfile(zip_file) or refresh_file:
-            print('generating zip file...')
+            print(f'generating zip file {zip_file}...')
             with zipfile.ZipFile(zip_file, 'w') as zipf:
                 for root, dirs, files in os.walk(os.path.join(SHARED_DIRECTORY, path)):
                     for file in files:
                         file_path = os.path.join(root, file)
                         relative_path = os.path.relpath(file_path, os.path.join(SHARED_DIRECTORY, path))                                
                         zipf.write(file_path, relative_path)
+
+        # Record download
+        client = Client.query.filter(Client.address==request.remote_addr).first()
+        download = Download(client_id=client.id, directory_id=Directory.query.filter(Directory.path==path).first().id)
+        download.download_time = datetime.datetime.now()
+        db.session.add(download)
+        db.session.commit()
+
         return send_file(zip_file, as_attachment=True)
 
 
+
 @app.route("/upload/<path>", methods=["GET", "POST"])
+@id_required
 def upload_dir(path):
     """
     Select a file to upload to the selected (`path`) directory
@@ -135,39 +248,48 @@ def upload_dir(path):
     """
     if request.method == 'POST':
         target_path = os.path.join(SHARED_DIRECTORY, path)
-        upload_name = request.form.get('upload_name')
-        if upload_name:
-            target_path = os.path.join(target_path, upload_name)
-            uploaded_files = request.files.getlist('file')
+        client = Client.query.filter(Client.address==request.remote_addr).first()
+        upload_name = client.selected_name
 
-            if len(uploaded_files) > app.config['MAX_FILES']:
-                flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'error')
-                return redirect(url_for('upload_dir', path=path))
-            
-            if os.path.exists(target_path):
-                flash(f'Datotke z istim imenom že obstajajo.', 'error')
-                return redirect(url_for('upload_dir', path=path))
-            
-            for file in uploaded_files:
-                if file:
-                    dirname = os.path.dirname(file.filename)
-                    save_dir = os.path.join(target_path, dirname)
-                    filename = secure_filename(file.filename)
-                    # Handle nested subdirectories
-                    file_path = os.path.join(save_dir, filename)
-                    print(file_path)
-                    os.makedirs(save_dir, exist_ok=True)
-                    file.save(file_path)
-            flash(f'{len(uploaded_files)} datotek uspešno naloženih.', 'success')
+        target_path = os.path.join(target_path, upload_name.strip())
+        uploaded_files = request.files.getlist('file')
+
+        if len(uploaded_files) > app.config['MAX_FILES']:
+            flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'error')
             return redirect(url_for('upload_dir', path=path))
-        else:
-            flash('Prosim vpišite vpisno številko.', 'error')
+        
+        if os.path.exists(target_path):
+            flash(f'Datotke z istim imenom že obstajajo.', 'error')
             return redirect(url_for('upload_dir', path=path))
+        
+        for file in uploaded_files:
+            if file:
+                dirname = os.path.dirname(file.filename)
+                save_dir = os.path.join(target_path, dirname)
+                filename = secure_filename(file.filename)
+                # Handle nested subdirectories
+                file_path = os.path.join(save_dir, filename)
+                print(file_path)
+                os.makedirs(save_dir, exist_ok=True)
+                file.save(file_path)
+
+        # Record upload
+        client = Client.query.filter(Client.address==request.remote_addr).first()
+        upload = Upload(client_id=client.id, directory_id=Directory.query.filter(Directory.path==path).first().id)
+        upload.upload_time = datetime.datetime.now()
+        upload.files_count = len(uploaded_files)
+        db.session.add(upload)
+        db.session.commit()
+
+        flash(f'{len(uploaded_files)} datotek uspešno naloženih.', 'success')
+        return redirect(url_for('upload_dir', path=path))
+
         
     return render_template('upload.html', path=path)
 
 
 @app.route("/copy_config")
+@admin_required
 def copy_config():
     if check_admin(request):
         config_copy_keys = [
@@ -183,6 +305,7 @@ def copy_config():
 
 
 @app.route("/admin", methods=["GET", "POST"])
+@admin_required
 def admin_view():
     # Admin check and management forms
     context = {}
@@ -213,6 +336,54 @@ def admin_view():
         exclude_dirnames=app.config["EXCLUDE_DIRNAMES"],
         **context
         )
+
+
+@app.route("/manage_session")
+@admin_required
+def manage_session():
+    """
+    View to manage the current session.
+    """
+    if check_admin(request):
+        clients = Client.query.all()
+        downloads = Download.query.all()
+        uploads = Upload.query.all()
+        
+        for d in downloads:
+            print(d.client.address)
+
+        # ping client to update last_seen
+        for client in clients:
+            response = ping(client.address, count=1, timeout=0.1)
+            if response.success():
+                client.last_seen = datetime.datetime.now()
+                client.active = True
+            else:
+                client.active = False
+            db.session.commit()
+
+        return render_template('manage_session.html',
+                               clients=clients, downloads=downloads, uploads=uploads)
+    else:
+        return redirect(url_for('list_dirs'))
+
+
+@app.route("/reset_session")
+@admin_required
+def reset_session():
+    """
+    Resets the current session by deleting the list of clients,
+    uploads and downlooads.
+    """
+    if check_admin(request):
+        nd_client = Client.query.delete()
+        nd_download = Download.query.delete()
+        nd_upload = Upload.query.delete()
+        db.session.commit()
+        flash(f'Session reset. Deleted {nd_client} client, {nd_download} download and {nd_upload} upload records.', 'success')
+        return redirect(url_for('manage_session'))
+    else:
+        return redirect(url_for('manage_session'))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
