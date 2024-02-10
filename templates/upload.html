@@ -2,13 +2,12 @@
 
 {% block content %}
 
-<h3>Izberi mapo za prenos v {{ path }}</h3>
-
+<div class="columns">
 <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <label for="path">Izberi mapo:</label>
-    <input type="file" name="file" id="file"  webkitdirectory directory multiple>
-    <input type="submit" value="Upload">
+    <label class="subtitle" for="path">Izberi mapo za prenos v <code style="border-radius: 0.5em;">{{ path }}</code></label>
+    <input class="input" type="file" name="file" id="file" style="margin-top: 1em;" webkitdirectory directory multiple>
+    <input class="button is-success" type="submit" value="Naloži" style="margin-top: 1em;">
 </form>
-
+</div>
 {% endblock %}

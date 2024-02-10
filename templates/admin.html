@@ -3,30 +3,63 @@
 {% block content %}
 {% if admin %}
 
-<p><a href="{{ url_for('copy_config') }}">Copy config file to `.netfshare/config.json`</a></p>
+<div class="columns">
+<div class="column is-fullwidth">
+<div class="card">
+    <header class="card-header">
+        <div class="card-header-title" >
+            <p class="subtitle">Manage shared directories</p>
+        </div>
+    </header>
+    <div class="card-content">
 
-<p><a href="{{ url_for('manage_session') }}">Manage current session (clents, downloads, uploads).</a></p>
+        <form action="{{ url_for('admin_view') }}" method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <table class="table is-hoverable">
+            {% for dir in manage_dirs %}
+            <tr style="padding: 0.2em">
+                <td>
+                {{ dir.path }}
+                </td>
+                <td>
+                <select name="{{ dir.id }}" id="{{ dir.id }}">
+                {% for value, label in share_modes.items() %}
+                    {% set int_val = value|int %}
+                    <option value="{{ int_val }}" {% if dir.mode==int_val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+                </select>
+            </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <input class="button is-success" type="submit" value="Submit">
+        </form>
+        <br>
 
-<h3>Manage shared directories</h3>
-<form action="{{ url_for('admin_view') }}" method="post">
-<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-<ul>
-    {% for dir in manage_dirs %}
-    <li>
-        {{ dir.path }} mode:
-        <select name="{{ dir.id }}" id="{{ dir.id }}">
-        {% for value, label in share_modes.items() %}
-            {% set int_val = value|int %}
-            <option value="{{ int_val }}" {% if dir.mode==int_val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-        </select>
-    </li>
-    {% endfor %}
-    <input type="submit" value="Submit">
-</ul>
-</form>
-<p>(The following directory names are excluded from sharing. Check config file: {{ exclude_dirnames }})</p>
+        <article class="message is-dark">
+            <div class="message-header">
+                <p>The following directory names are excluded from sharing. Check config file: </p>
+            </div>
+            <div class="message-body">
+                <ul>
+                {% for dir in exclude_dirnames %}
+                <li><code>{{ dir }}</code></li>
+                {% endfor %}
+            </ul>
+            </div>
+        </article>
+    </div>
+</div>
+</div>
+</div>
 
-
+<div class="buttons">
+    <button class="button is-success">
+        <a href="{{ url_for('manage_session') }}">Manage session</a>
+    </button>
+    <button class="button is-success is-light">
+        <a href="{{ url_for('copy_config') }}">Copy config `.netfshare`</a>
+    </button>
+</div>
 {% endif %}
 {% endblock %}

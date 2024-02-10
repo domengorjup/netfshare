@@ -4,75 +4,100 @@
 {% if admin %}
 
 <div class="columns">
+    <div class="column">
+        <div class="card">
+            <header class="card-header">
+                <div class="card-header-title" >
+                    <p class="subtitle">Clients</p>
+                </div>
+            </header>
+            <div class="card-content">
+                <table class="table is-hoverable is-fullwidth">
+                <th>
+                    <td>Client name</td>
+                    <td>Address</td>
+                    <td>Last seen</td>
+                    <td>Active</td>
+                </th>
+
+                {% for client in clients %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ client.selected_name }}</td>
+                        <td>{{ client.address }}</td>
+                        <td>{{ client.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</td> 
+                        <td>{{ client.active }}</td>
+                    </tr>
+                {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="columns">
 <div class="column">
-    <h3 class="subtitle">Clients list:</h3>
-    <table class="table is-hoverable">
-    <th>
-        <td>Client name</td>
-        <td>Address</td>
-        <td>Last seen</td>
-        <td>Status</td>
-    </th>
-
-    {% for client in clients %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ client.selected_name }}</td>
-            <td>{{ client.address }}</td>
-            <td>{{ client.last_seen }}</td> 
-            <td>{{ client.active }}</td>
-        </tr>
-    {% endfor %}
-    </table>
+    <div class="card">
+        <header class="card-header">
+            <div class="card-header-title" >
+                <p class="subtitle">Downloads</p>
+            </div>
+        </header>
+        <div class="card-content">
+            <table class="table is-hoverable is-fullwidth">
+            <th>
+                <td>Client name</td>
+                <td>Directory</td>
+                <td>Timestamp</td>
+            </th>
+            
+            {% for dl in downloads %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ dl.client.selected_name }}</td>
+                    <td>{{ dl.directory.path }}</td>
+                    <td>{{ dl.download_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
 </div>
 
 <div class="column">
-    <h3 class="subtitle">Downloads list:</h3>
-    <table class="table is-hoverable">
-    <th>
-        <td>Client name</td>
-        <td>Directory</td>
-        <td>Timestamp</td>
-    </th>
-    
-    {% for dl in downloads %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ dl.client.selected_name }}</td>
-            <td>{{ dl.directory.path }}</td>
-            <td>{{ dl.download_time }}</td>
-        </tr>
-    {% endfor %}
-    </table>
-</div>
-
-<div class="column">
-
-<h3 class="subtitle">Uploads list:</h3>
-    <table class="table is-hoverable">
-    <th>
-        <td>Client name</td>
-        <td>Directory</td>
-        <td>Timestamp</td>
-        <td>Files count</td>
-    </th>
-    
-    {% for ul in uploads %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ ul.client.selected_name }}</td>
-            <td>{{ ul.directory.path }}</td>
-            <td>{{ ul.upload_time }}</td>
-            <td>{{ ul.files_count }}</td>
-        </tr>
-    {% endfor %}
-    </table>
+    <div class="card">
+        <header class="card-header">
+            <div class="card-header-title" >
+                <p class="subtitle">Uploads</p>
+            </div>
+        </header>
+        <div class="card-content">
+            <table class="table is-hoverable is-fullwidth">
+            <th>
+                <td>Client name</td>
+                <td>Directory</td>
+                <td>Timestamp</td>
+                <td>Files count</td>
+            </th>
+            
+            {% for ul in uploads %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ ul.client.selected_name }}</td>
+                    <td>{{ ul.directory.path }}</td>
+                    <td>{{ ul.upload_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ ul.files_count }}</td>
+                </tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
 </div>
 </div>
 
 
-<button class="button is-warning is-light" onclick="{{ url_for('reset_session') }}" title="Warning: clears all current client, download and upload records.">
-    Reset current session
+<button class="button is-warning is-light" title="Warning: clears all current client, download and upload records.">
+    <a href="{{ url_for('reset_session') }}">Reset current session</a>
 </button>
 
 {% endif %}

@@ -113,11 +113,9 @@ def id_required(f):
     def decorated_function(*args, **kwargs):
         client = Client.query.filter(Client.address==request.remote_addr).first()
         print('client: ', client)
-        admin = check_admin(request)
         if client is None:
-            if not admin:
-                flash('No user ID set.', 'error')
-                return redirect(url_for('identify'))
+            flash('No user ID set.', 'warning')
+            return redirect(url_for('identify'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -127,7 +125,7 @@ def admin_required(f):
         admin = check_admin(request)
         if not admin:
             message = 'Admin access required. Redirecting to index...'
-            flash(message, 'error')
+            flash(message, 'danger')
             print(message)
             return redirect('/')
         return f(*args, **kwargs)
@@ -336,7 +334,7 @@ def manage_session():
             if response.success():
                 client.last_seen = datetime.datetime.now()
                 client.active = True
-            else:
+            elif (datetime.datetime.now() - client.last_seen).total_seconds() > 15:
                 client.active = False
             db.session.commit()
 
@@ -353,6 +351,7 @@ def reset_session():
     Resets the current session by deleting the list of clients,
     uploads and downlooads.
     """
+    print('reset_session, admin: ', check_admin(request))
     if check_admin(request):
         nd_client = Client.query.delete()
         nd_download = Download.query.delete()

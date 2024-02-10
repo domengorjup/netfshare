@@ -2,10 +2,12 @@
 
 {% block content %}
 
-<h1>Vnesi identifikacijsko številko</h1>
+<div class="columns">
 <form action="{{ url_for('identify') }}" method="post">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <label for="id">Vpisna številka:</label>
-    <input type="text" name="id" id="id" required>
-    <input type="submit" value="Submit">
+    <label for="id" class="subtitle">Vpisna številka:</label>
+    <input class="input is-success" style="margin-top: 1em;" type="text" type="text" name="id" id="id" required><br>
+    <input class="button is-success" type="submit" value="Potrdi" style="margin-top:1em">
+</form>
+</div>
 {% endblock %}

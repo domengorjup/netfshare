@@ -8,7 +8,7 @@
 </head>
 <body>
 <nav class="navbar" role="navigation" aria-label="main navigation" style="background-color: rgb(94, 126, 123);">
-    <div class="navbar-brand.is-vcentered">
+    <div class="navbar-brand">
         <a class="nav-item">
             <img src="{{ url_for('static', filename='icon.png') }}" alt="Domov">
         </a>
@@ -23,14 +23,14 @@
             <a class="navbar-item" href="{{ url_for('admin_view') }}">Admin</a>
         {% endif %}
     </div>
-
     
     <div class="navbar-end">
-    <a class="navbar-item" href="{{ url_for('list_dirs')}}">
-        {{ client.selected_name }} ({{ client.address }}), {% if client.active %}ACTIVE{% else %}NOT ACTIVE{% endif %}
-    </a>
+        <a class="navbar-item" href="{{ url_for('list_dirs')}}">
+            {{ client.selected_name }} ({{ client.address }}), {% if client.active %}ACTIVE{% else %}NOT ACTIVE{% endif %}
+        </a>
     </div>
 </nav>
+
 <section class="section">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -43,11 +43,17 @@
     {% endif %}
     {% endwith %}
 
-    <h1 class="title">File share</h1>
     <section class="section">
     {% block content %}{% endblock %}
     </section>
 
 </section>
+
+<footer style="bottom: 1em;">
+    <div class="content has-text-centered">
+    <p><a style="color:gray" href="https://github.com/domengorjup/netfshare">netfshare</a>, Author: <a style="color:gray" href="https://github.com/domengorjup/">domengorjup</a></p>
+    </div>
+</footer> 
+
 </body>
 </html>
