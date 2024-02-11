@@ -26,7 +26,7 @@ try:
     app.config.from_file(local_config, load=json.load, text=False)
 except Exception as e:
     print(f'Exception: {e}\nUsing default config.')
-    app.config.from_object('config')
+    app.config.from_object('netfshare.config')
 
 # Config database
 db_path = os.path.join(SHARED_DIRECTORY, '.netfshare', 'dir_config.db')

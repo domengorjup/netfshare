@@ -1,6 +1,6 @@
 import os
 
-from netfshare import app, netfshare
+from .netfshare import app, netfshare
 
 # Register netfshare views blueprint
 app.register_blueprint(netfshare)

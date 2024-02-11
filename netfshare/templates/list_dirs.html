@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="columns">
+    <div class="column is-two-fifths">
+    <div class="card">
+        <header class="card-header">
+            <div class="card-header-title" >
+                <p class="subtitle">Mape za prenos</p>
+            </div>
+        </header>
+        <div class="card-content">
+            <table class="table is-hoverable is-fullwidth">
+            {% for dir in read_only_dirs %}
+            <tr>
+                <td><a href="{{ url_for('download', path=dir) }}">{{ dir }}</a></td>
+            </tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
+    </div>
+    
+    <div class="column is-two-fifths">
+    <div class="card">
+        <header class="card-header">
+            <div class="card-header-title" >
+                <p class="subtitle">Mape za nalaganje</p>
+            </div>
+        </header>
+        <div class="card-content">
+            <table class="table is-hoverable is-fullwidth">
+                {% for dir in upload_only_dirs %}
+            <tr>
+                <td><a href="{{ url_for('upload_dir', path=dir) }}">{{ dir }}</a></td>
+            </tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "netfshare"
+version = "0.0.1"
+authors = [
+  { name="Domen Gorjup", email="domen_gorjup@hotmail.com" },
+]
+description = "A simple flask-based file sharing service"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "Flask >= 3.0.0",
+    "Flask-SQLAlchemy >= 3.1.0",
+    "pythonping >= 1.1.4"
+]
+
+[project.urls]
+Homepage = "https://github.com/domengorjup/netfsharet"
+Issues = "https://github.com/domengorjup/netfshare/issues"
