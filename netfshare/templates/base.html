@@ -33,6 +33,17 @@
 
 <section class="section">
     {% with messages = get_flashed_messages(with_categories=true) %}
+
+    {% if permanent_messages %}
+        {% for message in permanent_messages %}
+            {% if message.message %}
+                <div class="notification is-{{ message.category }} is-light" id="message{{ message.id }}">
+                    {{ message.message | safe}}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
     {% if messages %}
         {% for category, message in messages %}
         <div class="notification is-{{ category }}" id="flash{{ index }}">

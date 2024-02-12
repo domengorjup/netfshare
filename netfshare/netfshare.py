@@ -3,6 +3,7 @@ import time
 import zipfile
 import json
 import datetime
+import socket
 from functools import wraps
 from pythonping import ping
 
@@ -16,7 +17,6 @@ app = Flask(__name__)
 
 # Register this module as view Blueprint
 netfshare = Blueprint('netfshare', __name__)
-
  
 # Config app
 local_config = os.path.join(SHARED_DIRECTORY, '.netfshare', 'config.json')
@@ -81,6 +81,20 @@ class Upload(db.Model):
     upload_time = db.Column(db.DateTime, default=datetime.datetime.now)
     files_count = db.Column(db.Integer)
 
+class ConfigBool(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=True, unique=True)
+    value = db.Column(db.Boolean, default=False)
+    description = db.Column(db.String(256), nullable=True)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=True, unique=True)
+    message = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(256), nullable=True)
+    category = db.Column(db.String(64), nullable=True)
+
+
 # Scan the shared directory and add subdirectories to the DB
 with app.app_context():
     db.create_all()
@@ -89,7 +103,46 @@ with app.app_context():
         if os.path.isdir(directory):
             if not Directory.query.filter(Directory.path == directory).first():
                 db.session.add(Directory(directory))
+    
+
+    # Initialize some default settings
+    if not ConfigBool.query.filter(ConfigBool.name == 'allow_multiple_uploads').first():
+        db.session.add(ConfigBool(
+            name = "allow_multiple_uploads",
+            value = app.config.get('ALLOW_MULTIPLE_UPLOADS', False),
+            description = "Allow multiple user uploads to the same directory. Replaces existing files."
+        ))
+        print(app.config.get('ALLOW_MULTIPLE_UPLOADS', False))
+
+    if not Message.query.filter(Message.name == 'default_message').first():
+        db.session.add(Message(
+            name = "default_message",
+            message = '',
+            description = "Default message, visible to all users.",
+            category='info'
+        ))
+
     db.session.commit()
+
+
+# Command line output
+bcolors = {
+    "HEADER": '\033[95m',
+    "OKBLUE": '\033[94m',
+    "OKCYAN": '\033[96m',
+    "OKGREEN": '\033[92m',
+    "WARNING": '\033[93m',
+    "FAIL": '\033[91m',
+    "ENDC": '\033[0m',
+    "BOLD": '\033[1m',
+    "UNDERLINE": '\033[4m',
+}
+print()
+print(f'{bcolors["OKGREEN"]}File sever running at: '+\
+      f'{bcolors["OKBLUE"]}{socket.gethostbyname(socket.gethostname())}:5000{bcolors["ENDC"]}{bcolors["ENDC"]}')
+print()
+
+
 
 # Helper functions
 def available_dirs(mode):
@@ -131,17 +184,21 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Context processor to inject client id and admin status into templates
+# Context processor to inject client id, admin status and messages into templates
 @app.context_processor
 def inject_client():
     context = {}
     context['admin'] = check_admin(request)
+    
     client = Client.query.filter(Client.address==request.remote_addr).first()
     context['client'] = client
     if client is not None:
         client.active = True
         client.last_seen = datetime.datetime.now()
         db.session.commit()
+
+    messages = Message.query.all()
+    context['permanent_messages'] = messages
     return context
 
 # Views
@@ -237,23 +294,27 @@ def upload_dir(path):
         target_path = os.path.join(SHARED_DIRECTORY, path)
         client = Client.query.filter(Client.address==request.remote_addr).first()
         upload_name = client.selected_name
+        allow_multiple = ConfigBool.query.filter(ConfigBool.name=='allow_multiple_uploads').first().value
 
         target_path = os.path.join(target_path, upload_name.strip())
-        uploaded_files = request.files.getlist('file')
+        uploaded_files = request.files.getlist('file') 
 
         if len(uploaded_files) > app.config['MAX_FILES']:
             flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'warning')
             return redirect(url_for('upload_dir', path=path))
         
         if os.path.exists(target_path):
-            flash(f'Datotke z istim imenom že obstajajo.', 'warning')
-            return redirect(url_for('upload_dir', path=path))
+            if not allow_multiple:
+                flash(f'Datotke z istim imenom že obstajajo.', 'warning')
+                return redirect(url_for('upload_dir', path=path))
+            else:
+                flash(f'Datotke z istim imenom že obstajajo. Obstoječe bodo prepisane.', 'warning')
         
         for file in uploaded_files:
             if file:
                 dirname = os.path.dirname(file.filename)
                 save_dir = os.path.join(target_path, dirname)
-                filename = secure_filename(file.filename)
+                filename = os.path.basename(file.filename)
                 # Handle nested subdirectories
                 file_path = os.path.join(save_dir, filename)
                 os.makedirs(save_dir, exist_ok=True)
@@ -299,14 +360,40 @@ def admin_view():
     manage_dirs = [dir for dir in Directory.query.all() if dir.path in os.listdir(SHARED_DIRECTORY)]
     context['manage_dirs'] = manage_dirs
 
+    # Populate `messages`
+    message = Message.query.filter(Message.name=='default_message').first()
+    context['default_message'] = message
+
+    # Populate `configs`
+    configs = ConfigBool.query.all()
+    context['configs'] = configs
+
     # Validate and update share mode
     if request.method == 'POST':
-        for id, value in request.form.items():
-            if id in [str(d.id) for d in Directory.query.all()]:
+        messages = {}
+        for name, value in request.form.items():
+            
+            # handle dir modes
+            if name in [str(d.id) for d in Directory.query.all()]:
                 if value in [str(k) for k in app.config["SHARE_MODES"].keys()]:
-                    dir = Directory.query.filter(Directory.id == int(id)).first()
+                    dir = Directory.query.filter(Directory.id == int(name)).first()
                     dir.mode = int(value)
                     db.session.commit()
+
+            # handle messages and configs
+            elif name == 'default_message':
+                message.message = value
+                db.session.commit()
+                print(f'Setting {message.name} to "{value}".')
+
+            elif 'config' in name:
+                config_id = int(name.split('_')[-1])
+                config_value = bool(int(value))
+                config = ConfigBool.query.filter(ConfigBool.id==config_id).first()
+                config.value = config_value
+                db.session.commit()
+                print(f'setting {config.name} to {config_value}')
+
         return redirect(url_for('admin_view'))
     
     return render_template(

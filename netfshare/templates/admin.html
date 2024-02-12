@@ -5,6 +5,10 @@
 
 <div class="columns">
 <div class="column is-fullwidth">
+
+<form action="{{ url_for('admin_view') }}" method="post">
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
 <div class="card">
     <header class="card-header">
         <div class="card-header-title" >
@@ -12,9 +16,6 @@
         </div>
     </header>
     <div class="card-content">
-
-        <form action="{{ url_for('admin_view') }}" method="post">
-        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
         <table class="table is-hoverable">
             {% for dir in manage_dirs %}
             <tr style="padding: 0.2em">
@@ -32,8 +33,6 @@
             </tr>
             {% endfor %}
         </table>
-        <input class="button is-success" type="submit" value="Submit">
-        </form>
         <br>
 
         <article class="message is-dark">
@@ -41,7 +40,7 @@
                 <p>The following directory names are excluded from sharing. Check config file: </p>
             </div>
             <div class="message-body">
-                <ul>
+            <ul>
                 {% for dir in exclude_dirnames %}
                 <li><code>{{ dir }}</code></li>
                 {% endfor %}
@@ -50,16 +49,50 @@
         </article>
     </div>
 </div>
-</div>
+
+
+<div class="card" style="margin-top: 1em;">
+    <header class="card-header">
+        <div class="card-header-title" >
+            <p class="subtitle">Manage configs</p>
+        </div>
+    </header>
+    <div class="card-content">
+        <p>Set up directory sharing config values.</p><br>
+
+        {% for config in configs %}
+            <input type="checkbox" value= "1" id="config{{ config.id }}" name="config_{{ config.id }}" {% if config.value %}checked{% endif %}>
+            <input type='hidden' value="0" name="config_{{ config.id }}">
+            <label for="config">{{config.description}}</label>     
+        {% endfor %}
+    </div>
 </div>
 
-<div class="buttons">
-    <button class="button is-success">
+
+<div class="card" style="margin-top: 1em;">
+    <header class="card-header">
+        <div class="card-header-title" >
+            <p class="subtitle">Manage messages</p>
+        </div>
+    </header>
+    <div class="card-content">
+        <p>Set up a message, visible to all users.</p><br>
+        <input type="text" size="100" name="default_message" id="default_message" value="{{ default_message.message }}">
+    </div>
+</div>
+
+
+<div class="buttons" style="margin-top: 1em;">
+    <input class="button is-success" type="submit" value="Submit all">
+    
+    <button class="button is-success is-light">
         <a href="{{ url_for('manage_session') }}">Manage session</a>
     </button>
     <button class="button is-success is-light">
         <a href="{{ url_for('copy_config') }}">Copy config `.netfshare`</a>
     </button>
 </div>
+
+</form>
 {% endif %}
 {% endblock %}

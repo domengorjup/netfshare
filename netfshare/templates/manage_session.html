@@ -26,7 +26,11 @@
                         <td>{{ client.selected_name }}</td>
                         <td>{{ client.address }}</td>
                         <td>{{ client.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</td> 
-                        <td>{{ client.active }}</td>
+                        {% if client.active %} 
+                            <td style="background-color: rgb(185, 229, 185);">Active</td>
+                        {% else %}
+                            <td style="background-color: rgb(246, 209, 210);">Not active</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </table>
