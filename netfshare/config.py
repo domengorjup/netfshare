@@ -19,3 +19,6 @@ EXCLUDE_DIRNAMES = ['.git', '.netfshare', '__pycache__', 'venv']
 
 # Maximum number of files to upload at once
 MAX_FILES = 10
+
+# Localization
+LANGUAGES = ['en', 'sl']

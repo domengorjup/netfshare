@@ -31,3 +31,8 @@ Currently, the supported sharing modes are:
  - `upload_only`: clients can upload their data into a selected subdirectory of the shared folder. The uploaded content is placed inside a subfolder with the user's selected name. Currently, only a *single upload* by each user is allowed.
 
  
+## Localization
+
+netfshare supports localization using [flask-babel]([s](https://python-babel.github.io/flask-babel/)).
+
+The client-facing routes of the app are translated into English and Slovenian.

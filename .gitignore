@@ -161,3 +161,4 @@ cython_debug/
 
 /.netfshare
 /_TEST
+messages.pot

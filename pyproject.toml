@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "netfshare"
-version = "0.0.2"
+version = "0.1"
 authors = [
   { name="Domen Gorjup", email="domen_gorjup@hotmail.com" },
 ]
@@ -20,7 +20,8 @@ classifiers = [
 dependencies = [
     "Flask >= 3.0.0",
     "Flask-SQLAlchemy >= 3.1.0",
-    "pythonping >= 1.1.4"
+    "pythonping >= 1.1.4",
+    "flask-babel >= 4.0.0"
 ]
 
 [project.urls]

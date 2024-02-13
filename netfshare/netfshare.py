@@ -8,9 +8,9 @@ from functools import wraps
 from pythonping import ping
 
 from flask import (Flask, Blueprint, request, redirect, url_for, 
-                   send_file, flash, render_template, )
+                   send_file, flash, render_template, session)
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.utils import secure_filename
+from flask_babel import Babel, _
 
 SHARED_DIRECTORY = os.getcwd()
 app = Flask(__name__)
@@ -27,6 +27,23 @@ try:
 except Exception as e:
     print(f'Exception: {e}\nUsing default config.')
     app.config.from_object('netfshare.config')
+
+
+# Localizazion setup
+def get_locale():
+    """
+    Returns the best matching language for the user.
+    """
+    if 'language' in session:
+        language = session['language']
+    else:
+        language = request.accept_languages.best_match(app.config['LANGUAGES'])    
+        session['language'] = language
+    print('session language: ', session['language'])
+    return language
+
+babel = Babel(app, locale_selector=get_locale)
+
 
 # Config database
 db_path = os.path.join(SHARED_DIRECTORY, '.netfshare', 'dir_config.db')
@@ -124,22 +141,17 @@ with app.app_context():
 
     db.session.commit()
 
-
 # Command line output
 bcolors = {
     "HEADER": '\033[95m',
     "OKBLUE": '\033[94m',
-    "OKCYAN": '\033[96m',
     "OKGREEN": '\033[92m',
-    "WARNING": '\033[93m',
-    "FAIL": '\033[91m',
     "ENDC": '\033[0m',
     "BOLD": '\033[1m',
-    "UNDERLINE": '\033[4m',
 }
 print()
-print(f'{bcolors["OKGREEN"]}File sever running at: '+\
-      f'{bcolors["OKBLUE"]}{socket.gethostbyname(socket.gethostname())}:5000{bcolors["ENDC"]}{bcolors["ENDC"]}')
+print(f'{bcolors["OKGREEN"]}File sever running at: {bcolors["ENDC"]}'+\
+      f'{bcolors["OKBLUE"]}http://{socket.gethostbyname(socket.gethostname())}:5000{bcolors["ENDC"]}')
 print()
 
 
@@ -167,7 +179,7 @@ def id_required(f):
         client = Client.query.filter(Client.address==request.remote_addr).first()
         print('client: ', client)
         if client is None:
-            flash('No user ID set.', 'warning')
+            flash(_('No user ID set.'), 'warning')
             return redirect(url_for('identify'))
         return f(*args, **kwargs)
     return decorated_function
@@ -177,7 +189,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         admin = check_admin(request)
         if not admin:
-            message = 'Admin access required. Redirecting to index...'
+            message = _('Admin access required. Redirecting to index...')
             flash(message, 'danger')
             print(message)
             return redirect('/')
@@ -197,8 +209,15 @@ def inject_client():
         client.last_seen = datetime.datetime.now()
         db.session.commit()
 
+
+    return context
+
+@app.context_processor
+def inject_config():
+    context = {}
     messages = Message.query.all()
     context['permanent_messages'] = messages
+    context['supported_languages'] = app.config['LANGUAGES']
     return context
 
 # Views
@@ -221,7 +240,7 @@ def identify():
             db.session.commit()
             return redirect('/')
         else:
-            flash('Prosim vpišite vpisno številko.', 'error')
+            flash(_('Please input your ID number.'), 'error')
             return redirect('/')
     return render_template('identify.html')
 
@@ -250,7 +269,7 @@ def download(path):
     """
     if not os.path.isdir(os.path.join(SHARED_DIRECTORY, path)):
         print(path, ' not a directory')
-        flash(f'{path} is not a shared directory.', 'warning')
+        flash(_('%(path)s is not a shared directory.', path=path), 'warning')
         return redirect(url_for('list_dirs'))
     else:
         zip_file = os.path.join(SHARED_DIRECTORY, '.netfshare', path + '.zip')
@@ -300,15 +319,15 @@ def upload_dir(path):
         uploaded_files = request.files.getlist('file') 
 
         if len(uploaded_files) > app.config['MAX_FILES']:
-            flash(f'Preveč datotek. Največ {app.config["MAX_FILES"]} neenkrat.', 'warning')
+            flash(_('Too many files. Max. %(num_files)d files per upload.', num_files=app.config['MAX_FILES']), 'warning')
             return redirect(url_for('upload_dir', path=path))
         
         if os.path.exists(target_path):
             if not allow_multiple:
-                flash(f'Datotke z istim imenom že obstajajo.', 'warning')
+                flash(_('An upload with the same ID already exists.'), 'warning')
                 return redirect(url_for('upload_dir', path=path))
             else:
-                flash(f'Datotke z istim imenom že obstajajo. Obstoječe bodo prepisane.', 'warning')
+                flash(_('An upload with the same ID already exists. Files with matching names were overwritten.'), 'warning')
         
         for file in uploaded_files:
             if file:
@@ -328,24 +347,28 @@ def upload_dir(path):
         db.session.add(upload)
         db.session.commit()
 
-        flash(f'{len(uploaded_files)} datotek uspešno naloženih.', 'success')
+        flash(_('%(num_files)d files successfully uploaded.', num_files=len(uploaded_files)), 'success')
         return redirect(url_for('upload_dir', path=path))
 
-        
     return render_template('upload.html', path=path)
 
 
 @app.route("/copy_config")
 @admin_required
 def copy_config():
+    """
+    Copy the current app configuration to a local file.
+    Service restart required to apply any local changes.
+    """
     if check_admin(request):
         config_copy_keys = [
             'DEBUG', 'SECRET_KEY', 'WTF_CSRF_ENABLED', 'SQLALCHEMY_DATABASE_URI', 
-            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES', 'MAX_FILES'
+            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES', 'MAX_FILES', 'LANGUAGES'
         ]
         config_items = [(k, app.config[k]) for k in config_copy_keys if k in app.config.keys()]
         with open(local_config, 'w') as f:
             json.dump(dict(config_items), f, indent=2)
+        flash('Configuration copied to local file. Service restart required to apply any local changes.', 'success')
         return redirect(url_for('admin_view'))
     else:
         return redirect(url_for('list_dirs'))
@@ -354,6 +377,10 @@ def copy_config():
 @app.route("/admin", methods=["GET", "POST"])
 @admin_required
 def admin_view():
+    """
+    Admin view to manage the app settings, sucs as directory share modes,
+    user messages, clients, downloads and uploads in current session.
+    """
     # Admin check and management forms
     context = {}
     # Populate shared dir management forms
@@ -408,7 +435,8 @@ def admin_view():
 @admin_required
 def manage_session():
     """
-    View to manage the current session.
+    View to manage the current session (clients' status, lists of 
+    uploads and downlaods).
     """
     if check_admin(request):
         clients = Client.query.all()
@@ -448,6 +476,16 @@ def reset_session():
         return redirect(url_for('manage_session'))
     else:
         return redirect(url_for('manage_session'))
+    
+@app.route('/set-language/<language>')
+def set_language(language):
+    """
+    Set localization language.
+    """
+    if language in app.config['LANGUAGES']:
+        session['language'] = language.strip()
+        print('setting language to: ', session['language'])
+    return redirect(request.referrer or '/')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

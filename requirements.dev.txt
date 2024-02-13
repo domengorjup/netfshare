@@ -3,3 +3,4 @@ flask_sqlalchemy
 pythonping
 twine
 build
+flask-babel

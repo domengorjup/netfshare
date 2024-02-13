@@ -16,7 +16,7 @@
 
     <div class="navbar-start">
         <a class="navbar-item" href="{{ url_for('list_dirs')}}">
-          Home
+          {{ _('Home')}}
         </a>
 
         {% if admin %}
@@ -25,9 +25,14 @@
     </div>
     
     <div class="navbar-end">
-        <a class="navbar-item" href="{{ url_for('list_dirs')}}">
-            {{ client.selected_name }} ({{ client.address }}), {% if client.active %}ACTIVE{% else %}NOT ACTIVE{% endif %}
-        </a>
+        <p class="navbar-item">{{ _('Select language') }}</p>
+        {% for lang in supported_languages %}
+            <a class="navbar-item" href="{{ url_for('set_language', language=lang) }}">{{ lang }}</a>
+        {% endfor %}
+
+        <p class="navbar-item" style="background-color: lightgray;"">
+            {{ client.selected_name }} ({{ client.address }})
+        </p>
     </div>
 </nav>
 
@@ -62,7 +67,7 @@
 
 <footer style="bottom: 1em;">
     <div class="content has-text-centered">
-    <p><a style="color:gray" href="https://github.com/domengorjup/netfshare">netfshare</a>, Author: <a style="color:gray" href="https://github.com/domengorjup/">domengorjup</a></p>
+    <p><a style="color:gray" href="https://github.com/domengorjup/netfshare">netfshare</a>, {{ _('Author') }}: <a style="color:gray" href="https://github.com/domengorjup/">domengorjup</a></p>
     </div>
 </footer> 
 
