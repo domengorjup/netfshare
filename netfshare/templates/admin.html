@@ -9,6 +9,18 @@
 <form action="{{ url_for('admin_view') }}" method="post">
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
+<div class="buttons" style="margin-top: 1em;">
+    <button class="button is-success is-light">
+        <a href="{{ url_for('manage_session') }}">Manage session</a>
+    </button>
+    <button class="button is-success is-light">
+        <a href="{{ url_for('copy_config') }}">Copy config `.netfshare`</a>
+    </button>
+    <button class="button is-success is-light">
+        <a href="{{ url_for('scan_shared_dir') }}">Rescan shared directory</a>
+    </button>
+</div>
+
 <div class="card">
     <header class="card-header">
         <div class="card-header-title" >
@@ -84,13 +96,6 @@
 
 <div class="buttons" style="margin-top: 1em;">
     <input class="button is-success" type="submit" value="Submit all">
-    
-    <button class="button is-success is-light">
-        <a href="{{ url_for('manage_session') }}">Manage session</a>
-    </button>
-    <button class="button is-success is-light">
-        <a href="{{ url_for('copy_config') }}">Copy config `.netfshare`</a>
-    </button>
 </div>
 
 </form>

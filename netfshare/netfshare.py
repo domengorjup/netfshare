@@ -39,7 +39,6 @@ def get_locale():
     else:
         language = request.accept_languages.best_match(app.config['LANGUAGES'])    
         session['language'] = language
-    print('session language: ', session['language'])
     return language
 
 babel = Babel(app, locale_selector=get_locale)
@@ -113,14 +112,22 @@ class Message(db.Model):
 
 
 # Scan the shared directory and add subdirectories to the DB
-with app.app_context():
-    db.create_all()
-
+def add_shared_folders():
+    """
+    Scans the shared directory and adds subdirectories to the DB.
+    """
+    count_added = 0
     for directory in os.listdir(SHARED_DIRECTORY):
         if os.path.isdir(directory):
             if not Directory.query.filter(Directory.path == directory).first():
                 db.session.add(Directory(directory))
-    
+                count_added += 1
+    db.session.commit()
+    return count_added
+
+with app.app_context():
+    db.create_all()
+    count_added_dirs = add_shared_folders()
 
     # Initialize some default settings
     if not ConfigBool.query.filter(ConfigBool.name == 'allow_multiple_uploads').first():
@@ -129,7 +136,7 @@ with app.app_context():
             value = app.config.get('ALLOW_MULTIPLE_UPLOADS', False),
             description = "Allow multiple user uploads to the same directory. Replaces existing files."
         ))
-        print(app.config.get('ALLOW_MULTIPLE_UPLOADS', False))
+        db.session.commit()
 
     if not Message.query.filter(Message.name == 'default_message').first():
         db.session.add(Message(
@@ -138,8 +145,7 @@ with app.app_context():
             description = "Default message, visible to all users.",
             category='info'
         ))
-
-    db.session.commit()
+        db.session.commit()
 
 # Command line output
 bcolors = {
@@ -477,6 +483,18 @@ def reset_session():
     else:
         return redirect(url_for('manage_session'))
     
+
+@app.route("/scan_shared_dir")
+@admin_required
+def scan_shared_dir():
+    """
+    View to scan the shared directory and add subdirectories to the DB.
+    """
+    count_added = add_shared_folders()
+    flash(f'Shared directory scanned and added {count_added} folders to the database.', 'success')
+    return redirect(url_for('admin_view'))
+    
+
 @app.route('/set-language/<language>')
 def set_language(language):
     """
