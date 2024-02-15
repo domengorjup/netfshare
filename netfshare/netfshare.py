@@ -15,9 +15,11 @@ from flask_babel import Babel, _
 SHARED_DIRECTORY = os.getcwd()
 app = Flask(__name__)
 
+
 # Register this module as view Blueprint
 netfshare = Blueprint('netfshare', __name__)
  
+
 # Config app
 local_config = os.path.join(SHARED_DIRECTORY, '.netfshare', 'config.json')
 print(f'Starting netfshare in {SHARED_DIRECTORY}...')
@@ -147,6 +149,7 @@ with app.app_context():
         ))
         db.session.commit()
 
+
 # Command line output
 bcolors = {
     "HEADER": '\033[95m',
@@ -155,11 +158,13 @@ bcolors = {
     "ENDC": '\033[0m',
     "BOLD": '\033[1m',
 }
-print()
-print(f'{bcolors["OKGREEN"]}File sever running at: {bcolors["ENDC"]}'+\
-      f'{bcolors["OKBLUE"]}http://{socket.gethostbyname(socket.gethostname())}:5000{bcolors["ENDC"]}')
-print()
+host_ips = [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")]
 
+print()
+print(f'{bcolors["OKGREEN"]}File sever running at: {bcolors["ENDC"]}')
+for ip in host_ips:
+    print(f'\t{bcolors["OKBLUE"]}http://{ip}:5000{bcolors["ENDC"]}')
+print()
 
 
 # Helper functions
@@ -178,7 +183,7 @@ def check_admin(request):
         is_admin = True
     return is_admin
 
-# User identification decorator
+# User identification decorators
 def id_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -202,7 +207,8 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Context processor to inject client id, admin status and messages into templates
+
+# Context processor to inject data into templates
 @app.context_processor
 def inject_client():
     context = {}
@@ -214,8 +220,6 @@ def inject_client():
         client.active = True
         client.last_seen = datetime.datetime.now()
         db.session.commit()
-
-
     return context
 
 @app.context_processor
@@ -225,6 +229,7 @@ def inject_config():
     context['permanent_messages'] = messages
     context['supported_languages'] = app.config['LANGUAGES']
     return context
+
 
 # Views
 @app.route("/id", methods=["GET", "POST"])
@@ -251,6 +256,7 @@ def identify():
     return render_template('identify.html')
 
 @app.route("/", methods=["GET", "POST"])
+@id_required
 def list_dirs():
     """
     View to list directories on the server.
@@ -504,6 +510,7 @@ def set_language(language):
         session['language'] = language.strip()
         print('setting language to: ', session['language'])
     return redirect(request.referrer or '/')
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
