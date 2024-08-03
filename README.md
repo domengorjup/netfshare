@@ -10,7 +10,14 @@ A flask-based local network file sharing tool.
 
     ```py -m pip install netfshare```
 
-2. Navigate to the directory that you want to share the contents of. Run `netfshare` to start the sharing service:
+2. Navigate to the directory that you want to share the contents of. 
+
+3. (OPTIONAL) To secure your WSGI application, set a custom `SECRET_KEY` environment variable, or create a `.env` file in the shared
+   directory defining the `SECRET_KEY`:
+
+        SECRET_KEY=my_secret_key
+    
+4. Run `netfshare` to start the sharing service:
    
    ```py -m netfshare```
 
@@ -36,3 +43,15 @@ Currently, the supported sharing modes are:
 netfshare supports localization using [flask-babel]([s](https://python-babel.github.io/flask-babel/)).
 
 The client-facing routes of the app are translated into English and Slovenian.
+
+To update the translations after adding / modifying app text, run the following to get new text to bt translated and update the Slovenian translation file,:
+
+
+    pybabel extract -F babel.cfg -o messages.pot .
+    pybabel update -i messages.pot -d netfshare/translations
+
+
+Now edit / add new translations in `translations/sl/LC_MESSAGES/messages.po` and compile the new translations:
+
+    pybabel compile -d netfshare/translations
+

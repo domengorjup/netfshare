@@ -11,10 +11,11 @@ from flask import (Flask, Blueprint, request, redirect, url_for,
                    send_file, flash, render_template, session)
 from flask_sqlalchemy import SQLAlchemy
 from flask_babel import Babel, _
+from flask_socketio import SocketIO
 
 SHARED_DIRECTORY = os.getcwd()
 app = Flask(__name__)
-
+socketio = SocketIO(app)
 
 # Register this module as view Blueprint
 netfshare = Blueprint('netfshare', __name__)
@@ -75,16 +76,34 @@ class Client(db.Model):
     address = db.Column(db.String(64), nullable=True)
     last_seen = db.Column(db.DateTime, default=datetime.datetime.now)
     selected_name = db.Column(db.String(64), nullable=True)
-    active = db.Column(db.Boolean, default=False)
+    selected_id = db.Column(db.String(64), nullable=True)
     # Backref relationships to access client from download and upload:
     downloads = db.relationship('Download', backref='client')
     uploads = db.relationship('Upload', backref='client')
+    socket_connected = db.Column(db.Boolean, default=False)
 
     def __init__(self, address):
         self.address = address
 
+    @property
+    def active(self):
+        if (datetime.datetime.now() - self.last_seen).total_seconds() < 15:
+            return True
+        elif self.socket_connected:
+            return True
+        else:
+            return False
+    @active.setter
+    def active(self, value):
+        if value:
+            self.last_seen = datetime.datetime.now()
+
+
     def __repr__(self):
-        return f'Client: {self.address} (name: {self.selected_name}), active: {self.active}, (last seen {self.last_seen})'
+        if self.selected_name:
+            return f'Client: {self.address} (Name: {self.selected_name}, ID: {self.selected_id}), active: {self.active}, (last seen {self.last_seen})'
+        else:
+            return f'Client: {self.address} (ID: {self.selected_id}), active: {self.active}, (last seen {self.last_seen})'
     
 class Download(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -135,8 +154,18 @@ with app.app_context():
     if not ConfigBool.query.filter(ConfigBool.name == 'allow_multiple_uploads').first():
         db.session.add(ConfigBool(
             name = "allow_multiple_uploads",
+            # Read value from config.py, default to False
             value = app.config.get('ALLOW_MULTIPLE_UPLOADS', False),
             description = "Allow multiple user uploads to the same directory. Replaces existing files."
+        ))
+        db.session.commit()
+
+    if not ConfigBool.query.filter(ConfigBool.name == 'require_name_id').first():
+        db.session.add(ConfigBool(
+            name = "require_name_id",
+            # Read value from config.py, default to True
+            value = app.config.get('REQUIRE_NAME_ID', True),
+            description = "Require clients to id by providing their name along with their ID."
         ))
         db.session.commit()
 
@@ -228,6 +257,7 @@ def inject_config():
     messages = Message.query.all()
     context['permanent_messages'] = messages
     context['supported_languages'] = app.config['LANGUAGES']
+    context['require_name_id'] = ConfigBool.query.filter(ConfigBool.name=='require_name_id').first().value
     return context
 
 
@@ -246,14 +276,41 @@ def identify():
         id = request.form.get('id')
         if id:
             client = Client(request.remote_addr)
-            client.selected_name = id
+            client.selected_id = id
+
+            # handle name if required
+            if ConfigBool.query.filter(ConfigBool.name=='require_name_id').first().value:
+                name = request.form.get('name')
+                if name:
+                    client.selected_name = name
+                else:
+                    flash(_('Please input your name.'), 'error')
+                    return redirect('/')
+
             db.session.add(client)
             db.session.commit()
             return redirect('/')
         else:
             flash(_('Please input your ID number.'), 'error')
             return redirect('/')
+        
     return render_template('identify.html')
+
+# SocketIO connect and disconnect events
+@socketio.on('connect')
+def handle_connect():
+    client = Client.query.filter(Client.address==request.remote_addr).first()
+    if client:
+        client.socket_connected = True
+        db.session.commit()
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    client = Client.query.filter(Client.address==request.remote_addr).first()
+    if client:
+        client.socket_connected = False
+        db.session.commit()
 
 @app.route("/", methods=["GET", "POST"])
 @id_required
@@ -324,7 +381,12 @@ def upload_dir(path):
     if request.method == 'POST':
         target_path = os.path.join(SHARED_DIRECTORY, path)
         client = Client.query.filter(Client.address==request.remote_addr).first()
-        upload_name = client.selected_name
+        
+        if ConfigBool.query.filter(ConfigBool.name=='require_name_id').first().value:
+            upload_name = client.selected_name.replace(' ', '_') + '_' + client.selected_id
+        else:
+            upload_name = client.selected_id
+        
         allow_multiple = ConfigBool.query.filter(ConfigBool.name=='allow_multiple_uploads').first().value
 
         target_path = os.path.join(target_path, upload_name.strip())
@@ -458,11 +520,8 @@ def manage_session():
         # ping client to update last_seen
         for client in clients:
             response = ping(client.address, count=1, timeout=0.1)
-            if response.success():
+            if response.success() or client.socket_connected:
                 client.last_seen = datetime.datetime.now()
-                client.active = True
-            elif (datetime.datetime.now() - client.last_seen).total_seconds() > 15:
-                client.active = False
             db.session.commit()
 
         return render_template('manage_session.html',
@@ -488,6 +547,20 @@ def reset_session():
         return redirect(url_for('manage_session'))
     else:
         return redirect(url_for('manage_session'))
+    
+@app.route("/delete_client/<client_id>")
+@admin_required
+def delete_client(client_id):
+    """
+    Delete a client from the session.
+    """
+    client = Client.query.filter(Client.id==client_id).first()
+    selected_id = client.selected_id
+    if client:
+        db.session.delete(client)
+        db.session.commit()
+        flash(f'Client {selected_id} deleted.', 'success')
+    return redirect(url_for('manage_session'))
     
 
 @app.route("/scan_shared_dir")

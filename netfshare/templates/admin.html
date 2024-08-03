@@ -75,7 +75,7 @@
         {% for config in configs %}
             <input type="checkbox" value= "1" id="config{{ config.id }}" name="config_{{ config.id }}" {% if config.value %}checked{% endif %}>
             <input type='hidden' value="0" name="config_{{ config.id }}">
-            <label for="config">{{config.description}}</label>     
+            <label for="config">{{config.description}}</label> <br>
         {% endfor %}
     </div>
 </div>

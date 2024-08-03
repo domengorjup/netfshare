@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.2\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-02-13 20:02+0100\n"
-"PO-Revision-Date: 2024-02-13 20:04+0100\n"
+"POT-Creation-Date: 2024-08-03 11:46+0200\n"
+"PO-Revision-Date: 2024-08-03 11:49+0200\n"
 "Last-Translator: FULL NAME <Edomen_gorjup@hotmail.com>\n"
 "Language-Team: sl <LL@li.org>\n"
 "Language: sl\n"
@@ -17,65 +17,73 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || "
 "n%100==4 ? 2 : 3);\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 "X-Generator: Poedit 3.4.2\n"
 
-#: netfshare/netfshare.py:181
+#: netfshare/netfshare.py:222
 msgid "No user ID set."
 msgstr "Vpisna številka ni izbrana."
 
-#: netfshare/netfshare.py:191
+#: netfshare/netfshare.py:232
 msgid "Admin access required. Redirecting to index..."
 msgstr ""
 "Potrebne so administratorske pravice. Preusmerjeni ste bili na naslovno "
 "stran."
 
-#: netfshare/netfshare.py:242
+#: netfshare/netfshare.py:287
+msgid "Please input your name."
+msgstr "Vnesite ime in priimek."
+
+#: netfshare/netfshare.py:294
 msgid "Please input your ID number."
 msgstr "Vnesite svojo vpisno številko."
 
-#: netfshare/netfshare.py:271
+#: netfshare/netfshare.py:341
 #, python-format
 msgid "%(path)s is not a shared directory."
 msgstr "%(path)s ni deljena mapa."
 
-#: netfshare/netfshare.py:321
+#: netfshare/netfshare.py:396
 #, python-format
 msgid "Too many files. Max. %(num_files)d files per upload."
 msgstr ""
 "Preveč datotek izbranih. Dovoljeno nalaganje največ %(num_files)d datotek "
 "naenkrat."
 
-#: netfshare/netfshare.py:326
+#: netfshare/netfshare.py:401
 msgid "An upload with the same ID already exists."
 msgstr "Datoteke so že bile oddane."
 
-#: netfshare/netfshare.py:329
+#: netfshare/netfshare.py:404
 msgid ""
 "An upload with the same ID already exists. Files with matching names were "
 "overwritten."
 msgstr "Datoteke so že bile oddane. Tiste, z enakimi imeni, so bile prepisane."
 
-#: netfshare/netfshare.py:349
+#: netfshare/netfshare.py:424
 #, python-format
 msgid "%(num_files)d files successfully uploaded."
 msgstr "%(num_files)d datotek uspešno oddanih."
 
-#: netfshare/templates/base.html:19
+#: netfshare/templates/base.html:32
 msgid "Home"
 msgstr "Domov"
 
-#: netfshare/templates/base.html:28
+#: netfshare/templates/base.html:41
 msgid "Select language"
 msgstr "Izberi jezik"
 
-#: netfshare/templates/base.html:70
+#: netfshare/templates/base.html:89
 msgid "Author"
 msgstr "Avtor"
 
 #: netfshare/templates/identify.html:8
 msgid "Enter ID number"
 msgstr "Vpisna številka"
+
+#: netfshare/templates/identify.html:11
+msgid "Enter name"
+msgstr "Ime in Priimek"
 
 #: netfshare/templates/list_dirs.html:10
 msgid "Downloads"

@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>File share</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='bulma.css') }}">
+    
+    <!--- socketio client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+        socket.on('connect', function() {
+            console.log('Connected to socekt server');
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from socket server');
+        });
+    </script>
 </head>
 <body>
 <nav class="navbar" role="navigation" aria-label="main navigation" style="background-color: rgb(94, 126, 123);">
@@ -30,9 +43,15 @@
             <a class="navbar-item" href="{{ url_for('set_language', language=lang) }}">{{ lang }}</a>
         {% endfor %}
 
-        <p class="navbar-item" style="background-color: lightgray;"">
-            {{ client.selected_name }} ({{ client.address }})
-        </p>
+        {% if require_name_id %}
+            <p class="navbar-item" style="background-color: lightgray;"">
+                {{ client.selected_name }}, {{client.selected_id}} ({{ client.address }})
+            </p>
+        {% else %}
+            <p class="navbar-item" style="background-color: lightgray;"">
+                {{client.selected_id}} ({{ client.address }})
+            </p>
+        {% endif %}
     </div>
 </nav>
 

@@ -1,6 +1,11 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
+
 # App settings
 DEBUG = True
-SECRET_KEY = 'secretkkkey'
+SECRET_KEY = os.getenv('SECRET_KEY', 'default_for_dev') # load WSGI secret key from enironment variables
 WTF_CSRF_ENABLED = True
 
 # Database

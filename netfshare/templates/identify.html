@@ -7,7 +7,11 @@
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <label for="id" class="subtitle">{{ _('Enter ID number') }}:</label>
     <input class="input is-success" style="margin-top: 1em;" type="text" type="text" name="id" id="id" required><br>
-    <input class="button is-success" type="submit" value="Potrdi" style="margin-top:1em">
+    {% if require_name_id %}
+        <label for="id" class="subtitle" style="margin-top: 1em;">{{ _('Enter name') }}:</label>
+        <input class="input is-success" type="text" type="text" name="name" id="name" required><br>
+    {% endif %}
+    <input class="button is-success" style="margin-top: 1em;" type="submit" value="Potrdi" style="margin-top:1em">
 </form>
 </div>
 {% endblock %}

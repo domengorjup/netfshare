@@ -1,6 +1,8 @@
 flask
 flask_sqlalchemy
+flask-socketio
 pythonping
+python-dotenv
 twine
 build
 flask-babel
