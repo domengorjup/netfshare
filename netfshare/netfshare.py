@@ -188,11 +188,12 @@ bcolors = {
     "BOLD": '\033[1m',
 }
 host_ips = [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")]
+port = int(app.config.get("PORT", 5000))
 
 print()
 print(f'{bcolors["OKGREEN"]}File sever running at: {bcolors["ENDC"]}')
 for ip in host_ips:
-    print(f'\t{bcolors["OKBLUE"]}http://{ip}:5000{bcolors["ENDC"]}')
+    print(f'\t{bcolors["OKBLUE"]}http://{ip}:{port}{bcolors["ENDC"]}')
 print()
 
 
@@ -437,7 +438,7 @@ def copy_config():
     if check_admin(request):
         config_copy_keys = [
             'DEBUG', 'SECRET_KEY', 'WTF_CSRF_ENABLED', 'SQLALCHEMY_DATABASE_URI', 
-            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES', 'MAX_FILES', 'LANGUAGES'
+            'REFRESH_TIME', 'SHARE_MODES', 'EXCLUDE_DIRNAMES', 'MAX_FILES', 'LANGUAGES', 'PORT',
         ]
         config_items = [(k, app.config[k]) for k in config_copy_keys if k in app.config.keys()]
         with open(local_config, 'w') as f:
@@ -586,5 +587,5 @@ def set_language(language):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(app.config.get("PORT", 5000))
     app.run(port=port, host='0.0.0.0')

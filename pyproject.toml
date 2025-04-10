@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "netfshare"
-version = "0.4"
+version = "0.5"
 authors = [
   { name="Domen Gorjup", email="domen_gorjup@hotmail.com" },
 ]
-description = "A simple flask-based file sharing service"
+description = "A simple flask-based file sharing / distribution service"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
