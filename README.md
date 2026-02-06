@@ -25,6 +25,16 @@ The service cam+n be accessd at `<your-local-ip>:5000`.
 
 Make sure your machine is discoverable in the local network and that the required firewall rules are active.
 
+### Admin access
+
+The `netfshare` app automatically recognizes a client that's accessing the app from the host (machine running the app) as admin.
+
+If you're having issues with admin access (e.g. you're not recognized as admin despite accessing the app from your local machine), try accessing the app directl at:
+
+```
+http://127.0.0.1:<port>
+```
+
 ## Sharing settings
 
 Visit the service website Admin interface from the machine running the service to manage the sharing settings.
