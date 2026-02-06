@@ -6,3 +6,7 @@ python-dotenv
 twine
 build
 flask-babel
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-flask>=1.0.0
