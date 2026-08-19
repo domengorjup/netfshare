@@ -4,7 +4,6 @@ Tests for file upload validation (not file I/O).
 
 import os
 import io
-from unittest.mock import patch
 
 
 class TestUploadValidation:
@@ -38,14 +37,16 @@ class TestUploadValidation:
                 "file": [(io.BytesIO(b"content"), f"file{i}.txt") for i in range(15)]
             }
 
-            with patch("flask.request.remote_addr", "192.168.1.100"):
-                response = client.post(
-                    "/upload/uploads", data=data, content_type="multipart/form-data"
-                )
+            response = client.post(
+                "/upload/uploads",
+                data=data,
+                content_type="multipart/form-data",
+                environ_overrides={"REMOTE_ADDR": "192.168.1.100"},
+            )
 
-                # Should redirect with error message
-                assert response.status_code == 302
-                # Check that flash message would be shown (Too many files)
+            # Should redirect with error message
+            assert response.status_code == 302
+            # Check that flash message would be shown (Too many files)
 
     def test_upload_duplicate_id_blocked(
         self, client, app, db_session, temp_shared_dir
@@ -88,10 +89,12 @@ class TestUploadValidation:
             # Try to upload again
             data = {"file": (io.BytesIO(b"new content"), "new_file.txt")}
 
-            with patch("flask.request.remote_addr", "192.168.1.100"):
-                response = client.post(
-                    "/upload/uploads", data=data, content_type="multipart/form-data"
-                )
+            response = client.post(
+                "/upload/uploads",
+                data=data,
+                content_type="multipart/form-data",
+                environ_overrides={"REMOTE_ADDR": "192.168.1.100"},
+            )
 
-                # Should redirect with warning
-                assert response.status_code == 302
+            # Should redirect with warning
+            assert response.status_code == 302

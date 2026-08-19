@@ -21,7 +21,17 @@ A flask-based local network file sharing tool.
    
    ```py -m netfshare```
 
-The service cam+n be accessd at `<your-local-ip>:5000`. 
+The service can be accessed at `http://<your-local-ip>` by default.
+
+If needed, you can override the port through configuration.
+
+On Linux, binding to port `80` requires additional privileges. One simple option for a local development setup is to grant the virtual environment's Python interpreter permission to bind low ports:
+
+```bash
+sudo setcap 'cap_net_bind_service=+ep' "$(realpath .venv/bin/python3)"
+```
+
+If you recreate the virtual environment, run the command again.
 
 Make sure your machine is discoverable in the local network and that the required firewall rules are active.
 
@@ -31,9 +41,11 @@ The `netfshare` app automatically recognizes a client that's accessing the app f
 
 If you're having issues with admin access (e.g. you're not recognized as admin despite accessing the app from your local machine), try accessing the app directl at:
 
+```text
+http://127.0.0.1
 ```
-http://127.0.0.1:<port>
-```
+
+If you configured a custom port, append `:<port>`.
 
 ## Sharing settings
 

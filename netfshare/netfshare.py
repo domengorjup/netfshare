@@ -216,7 +216,7 @@ host_ips = [
     for ip in socket.gethostbyname_ex(socket.gethostname())[2]
     if not ip.startswith("127.")
 ]
-port = int(app.config.get("PORT", 5000))
+port = int(app.config.get("PORT", 80))
 
 print()
 print(f"{bcolors['OKGREEN']}File sever running at: {bcolors['ENDC']}")
@@ -694,5 +694,5 @@ def set_language(language):
 
 
 if __name__ == "__main__":
-    port = int(app.config.get("PORT", 5000))
-    app.run(port=port, host="0.0.0.0")
+    port = int(app.config.get("PORT", 80))
+    socketio.run(app, port=port, host="0.0.0.0")

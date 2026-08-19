@@ -28,14 +28,16 @@ class TestPingHandling:
             mock_response.success.return_value = True
 
             with patch("netfshare.netfshare.ping", return_value=mock_response):
-                with patch("flask.request.remote_addr", "127.0.0.1"):
-                    response = client.get("/manage_session")
+                response = client.get(
+                    "/manage_session",
+                    environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+                )
 
-                    # Refresh client from DB
-                    db_session.refresh(client_obj)
+                # Refresh client from DB
+                db_session.refresh(client_obj)
 
-                    # Should have updated timestamp
-                    assert client_obj.last_seen > old_time
+                # Should have updated timestamp
+                assert client_obj.last_seen > old_time
 
     def test_ping_permission_error_caught(self, client, app, db_session):
         """Test that PermissionError is caught gracefully."""
@@ -55,18 +57,20 @@ class TestPingHandling:
                 "netfshare.netfshare.ping",
                 side_effect=PermissionError("Operation not permitted"),
             ):
-                with patch("flask.request.remote_addr", "127.0.0.1"):
-                    # Should not raise exception
-                    response = client.get("/manage_session")
-                    assert response.status_code == 200
+                # Should not raise exception
+                response = client.get(
+                    "/manage_session",
+                    environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+                )
+                assert response.status_code == 200
 
-                    # Refresh client from DB
-                    db_session.refresh(client_obj)
+                # Refresh client from DB
+                db_session.refresh(client_obj)
 
-                    # Timestamp should NOT be updated (ping failed and socket not connected)
-                    # Allow small time difference due to test execution
-                    time_diff = abs((client_obj.last_seen - old_time).total_seconds())
-                    assert time_diff < 1  # Should be essentially unchanged
+                # Timestamp should NOT be updated (ping failed and socket not connected)
+                # Allow small time difference due to test execution
+                time_diff = abs((client_obj.last_seen - old_time).total_seconds())
+                assert time_diff < 1  # Should be essentially unchanged
 
     def test_socket_connected_fallback(self, client, app, db_session):
         """Test that socket_connected works as fallback when ping fails."""
@@ -86,14 +90,16 @@ class TestPingHandling:
                 "netfshare.netfshare.ping",
                 side_effect=PermissionError("Operation not permitted"),
             ):
-                with patch("flask.request.remote_addr", "127.0.0.1"):
-                    response = client.get("/manage_session")
+                response = client.get(
+                    "/manage_session",
+                    environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+                )
 
-                    # Refresh client from DB
-                    db_session.refresh(client_obj)
+                # Refresh client from DB
+                db_session.refresh(client_obj)
 
-                    # Timestamp should be updated because socket_connected is True
-                    assert client_obj.last_seen > old_time
+                # Timestamp should be updated because socket_connected is True
+                assert client_obj.last_seen > old_time
 
     def test_both_fail_marks_inactive(self, client, app, db_session):
         """Test that client is marked inactive when both ping and socket fail."""
@@ -113,11 +119,13 @@ class TestPingHandling:
             mock_response.success.return_value = False
 
             with patch("netfshare.netfshare.ping", return_value=mock_response):
-                with patch("flask.request.remote_addr", "127.0.0.1"):
-                    response = client.get("/manage_session")
+                response = client.get(
+                    "/manage_session",
+                    environ_overrides={"REMOTE_ADDR": "127.0.0.1"},
+                )
 
-                    # Check that client is now inactive
-                    assert client_obj.active is False
+                # Check that client is now inactive
+                assert client_obj.active is False
 
     def test_manage_session_shows_client_list(self, client, app, db_session):
         """Test that manage_session displays the list of clients."""
@@ -131,14 +139,15 @@ class TestPingHandling:
                 db_session.add(client_obj)
             db_session.commit()
 
-            with patch("flask.request.remote_addr", "127.0.0.1"):
-                response = client.get("/manage_session")
+            response = client.get(
+                "/manage_session", environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+            )
 
-                assert response.status_code == 200
-                # Should contain client IDs
-                assert b"user0" in response.data
-                assert b"user1" in response.data
-                assert b"user2" in response.data
+            assert response.status_code == 200
+            # Should contain client IDs
+            assert b"user0" in response.data
+            assert b"user1" in response.data
+            assert b"user2" in response.data
 
     def test_manage_session_shows_uploads_downloads(self, client, app, db_session):
         """Test that manage_session displays uploads and downloads."""
@@ -162,9 +171,10 @@ class TestPingHandling:
             db_session.add(download)
             db_session.commit()
 
-            with patch("flask.request.remote_addr", "127.0.0.1"):
-                response = client.get("/manage_session")
+            response = client.get(
+                "/manage_session", environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+            )
 
-                assert response.status_code == 200
-                # Should contain upload/download info
-                assert b"testuser" in response.data
+            assert response.status_code == 200
+            # Should contain upload/download info
+            assert b"testuser" in response.data

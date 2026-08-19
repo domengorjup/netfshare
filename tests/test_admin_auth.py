@@ -61,20 +61,21 @@ class TestAdminViewProtection:
             db.session.add(test_dir)
             db.session.commit()
 
-        with patch("flask.request.remote_addr", "127.0.0.1"):
-            response = client.get("/admin")
-            # Should not redirect, should show admin page
-            assert response.status_code == 200
+        response = client.get("/admin", environ_overrides={"REMOTE_ADDR": "127.0.0.1"})
+        # Should not redirect, should show admin page
+        assert response.status_code == 200
 
     def test_manage_session_allows_loopback(self, client):
         """Test that /manage_session is accessible from loopback."""
-        with patch("flask.request.remote_addr", "127.0.0.1"):
-            response = client.get("/manage_session")
-            assert response.status_code == 200
+        response = client.get(
+            "/manage_session", environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+        )
+        assert response.status_code == 200
 
     def test_reset_session_allows_loopback(self, client):
         """Test that /reset_session is accessible from loopback."""
-        with patch("flask.request.remote_addr", "127.0.0.1"):
-            response = client.get("/reset_session")
-            # Should redirect after successful reset
-            assert response.status_code == 302
+        response = client.get(
+            "/reset_session", environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+        )
+        # Should redirect after successful reset
+        assert response.status_code == 302
