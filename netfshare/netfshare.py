@@ -31,6 +31,26 @@ socketio = SocketIO(app)
 netfshare = Blueprint("netfshare", __name__)
 
 
+def write_local_config():
+    config_copy_keys = [
+        "DEBUG",
+        "SECRET_KEY",
+        "WTF_CSRF_ENABLED",
+        "SQLALCHEMY_DATABASE_URI",
+        "REFRESH_TIME",
+        "SHARE_MODES",
+        "EXCLUDE_DIRNAMES",
+        "MAX_FILES",
+        "LANGUAGES",
+        "PORT",
+    ]
+    config_items = [
+        (k, app.config[k]) for k in config_copy_keys if k in app.config.keys()
+    ]
+    with open(local_config, "w") as f:
+        json.dump(dict(config_items), f, indent=2)
+
+
 # Config app
 local_config = os.path.join(SHARED_DIRECTORY, ".netfshare", "config.json")
 print(f"Starting netfshare in {SHARED_DIRECTORY}...")
@@ -40,6 +60,8 @@ try:
 except Exception as e:
     print(f"Exception: {e}\nUsing default config.")
     app.config.from_object("netfshare.config")
+    os.makedirs(os.path.dirname(local_config), exist_ok=True)
+    write_local_config()
 
 
 # Localizazion setup
@@ -216,7 +238,7 @@ host_ips = [
     for ip in socket.gethostbyname_ex(socket.gethostname())[2]
     if not ip.startswith("127.")
 ]
-port = int(app.config.get("PORT", 80))
+port = int(app.config.get("PORT", 5000))
 
 print()
 print(f"{bcolors['OKGREEN']}File sever running at: {bcolors['ENDC']}")
@@ -245,7 +267,7 @@ def available_dirs(mode):
 def check_admin(request):
     is_admin = False
     addr = ipaddress.ip_address(request.remote_addr)
-    if addr.is_loopback:
+    if addr.is_loopback or request.remote_addr in host_ips:
         is_admin = True
     return is_admin
 
@@ -517,23 +539,7 @@ def copy_config():
     Service restart required to apply any local changes.
     """
     if check_admin(request):
-        config_copy_keys = [
-            "DEBUG",
-            "SECRET_KEY",
-            "WTF_CSRF_ENABLED",
-            "SQLALCHEMY_DATABASE_URI",
-            "REFRESH_TIME",
-            "SHARE_MODES",
-            "EXCLUDE_DIRNAMES",
-            "MAX_FILES",
-            "LANGUAGES",
-            "PORT",
-        ]
-        config_items = [
-            (k, app.config[k]) for k in config_copy_keys if k in app.config.keys()
-        ]
-        with open(local_config, "w") as f:
-            json.dump(dict(config_items), f, indent=2)
+        write_local_config()
         flash(
             "Configuration copied to local file. Service restart required to apply any local changes.",
             "success",
@@ -694,5 +700,5 @@ def set_language(language):
 
 
 if __name__ == "__main__":
-    port = int(app.config.get("PORT", 80))
+    port = int(app.config.get("PORT", 5000))
     socketio.run(app, port=port, host="0.0.0.0")

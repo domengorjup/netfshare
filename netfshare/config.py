@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv(
     "SECRET_KEY", "default_for_dev"
 )  # load WSGI secret key from enironment variables
 WTF_CSRF_ENABLED = True
-PORT = 80
+PORT = 5000
 
 # Database
 SQLALCHEMY_TRACK_MODIFICATIONS = False

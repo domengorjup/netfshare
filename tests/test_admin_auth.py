@@ -47,6 +47,18 @@ class TestCheckAdmin:
                 with patch.object(request, "remote_addr", addr):
                     assert check_admin(request) is False, f"Failed for {addr}"
 
+    def test_check_admin_host_ip(self, app):
+        """Test that the host machine's own non-loopback IP is admin."""
+        from netfshare.netfshare import check_admin, host_ips
+        from flask import request
+
+        if not host_ips:
+            pytest.skip("No non-loopback host IPs available")
+
+        with app.test_request_context():
+            with patch.object(request, "remote_addr", host_ips[0]):
+                assert check_admin(request) is True
+
 
 class TestAdminViewProtection:
     """Test that admin routes work properly (loopback access)."""
